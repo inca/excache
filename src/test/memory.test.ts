@@ -1,6 +1,10 @@
 import assert from 'assert';
 
 import { MemoryCache } from '../main/memory.js';
+import { sleep } from './util/sleep.js';
+
+const ttl = Number(process.env.TEST_TTL) || 10;
+const delay = Number(process.env.TEST_DELAY) || 1;
 
 describe('MemoryCache', () => {
 
@@ -13,8 +17,9 @@ describe('MemoryCache', () => {
                 maxSize: 3,
             });
             await cache.set('foo', 'Hello World');
-            await new Promise(r => setTimeout(r, 1));
+            await sleep(delay);
             await cache.set('bar', 'KTHXBYE');
+            await sleep(delay);
         });
 
         it('returns undefined on miss', async () => {
@@ -30,6 +35,7 @@ describe('MemoryCache', () => {
         it('evicts least recently modified value', async () => {
             // foo is in the cache the longest, evicted
             await cache.set('baz', '42');
+            await sleep(delay);
             await cache.set('qux', '123');
             assert.strictEqual(await cache.get('foo'), undefined);
             assert.strictEqual(await cache.get('bar'), 'KTHXBYE');
@@ -39,8 +45,10 @@ describe('MemoryCache', () => {
 
         it('preserves last accessed value', async () => {
             await cache.get('foo');
+            await sleep(delay);
             // Now foo stays, bar is evicted
             await cache.set('baz', '42');
+            await sleep(delay);
             await cache.set('qux', '123');
             assert.strictEqual(await cache.get('foo'), 'Hello World');
             assert.strictEqual(await cache.get('bar'), undefined);
@@ -52,12 +60,11 @@ describe('MemoryCache', () => {
 
     describe('TTL cache', () => {
 
-        const TTL = 10;
         let cache: MemoryCache<string>;
 
         beforeEach(async () => {
             cache = new MemoryCache<string>({
-                ttl: TTL,
+                ttl,
             });
             await cache.set('foo', 'Hello World');
             await cache.set('bar', 'KTHXBYE');
@@ -74,7 +81,7 @@ describe('MemoryCache', () => {
         });
 
         it('evicts stale values', async () => {
-            await new Promise(r => setTimeout(r, TTL + 1));
+            await sleep(ttl * 2);
             await cache.set('baz', '42');
             await cache.set('qux', '123');
             assert.strictEqual(await cache.get('foo'), undefined);

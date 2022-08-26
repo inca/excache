@@ -4,11 +4,14 @@ import os from 'os';
 import path from 'path';
 
 import { FsCache } from '../main/fs.js';
+import { sleep } from './util/sleep.js';
+
+const cacheDir = process.env.TEST_CACHE_DIR || path.join(os.tmpdir(), 'cache');
+const ttl = Number(process.env.TEST_TTL) || 10;
+const delay = Number(process.env.TEST_DELAY) || 1;
 
 describe('FsCache', () => {
 
-    const tmpDir = os.tmpdir();
-    const cacheDir = path.join(tmpDir, 'cache');
 
     describe('LRU cache', () => {
 
@@ -23,8 +26,9 @@ describe('FsCache', () => {
                 fromString: value => value,
             });
             await cache.set('foo', 'Hello World');
-            await new Promise(r => setTimeout(r, 1));
+            await sleep(delay);
             await cache.set('bar', 'KTHXBYE');
+            await sleep(delay);
         });
 
         it('returns undefined on miss', async () => {
@@ -40,6 +44,7 @@ describe('FsCache', () => {
         it('evicts least recently modified value', async () => {
             // foo is in the cache the longest, evicted
             await cache.set('baz', '42');
+            await sleep(delay);
             await cache.set('qux', '123');
             const files = await fs.readdir(cacheDir);
             assert.deepStrictEqual(files.sort(), ['bar', 'baz', 'qux']);
@@ -52,7 +57,9 @@ describe('FsCache', () => {
         it('preserves last accessed value', async () => {
             await cache.get('foo');
             // Now foo stays, bar is evicted
+            await sleep(delay);
             await cache.set('baz', '42');
+            await sleep(delay);
             await cache.set('qux', '123');
             const files = await fs.readdir(cacheDir);
             assert.deepStrictEqual(files.sort(), ['baz', 'foo', 'qux']);
@@ -66,14 +73,13 @@ describe('FsCache', () => {
 
     describe('TTL cache', () => {
 
-        const TTL = 10;
         let cache: FsCache<string>;
 
         beforeEach(async () => {
             await fs.rm(cacheDir, { force: true, recursive: true });
             cache = new FsCache<string>({
                 dir: cacheDir,
-                ttl: TTL,
+                ttl,
                 toString: value => value,
                 fromString: value => value,
             });
@@ -92,7 +98,7 @@ describe('FsCache', () => {
         });
 
         it('evicts stale values', async () => {
-            await new Promise(r => setTimeout(r, TTL + 1));
+            await sleep(ttl * 2);
             await cache.set('baz', '42');
             await cache.set('qux', '123');
             const files = await fs.readdir(cacheDir);
@@ -104,6 +110,5 @@ describe('FsCache', () => {
         });
 
     });
-
 
 });

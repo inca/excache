@@ -20,3 +20,6 @@ jobs:
     - run: npm run lint
     - run: npm run compile
     - run: npm test
+      env:
+        TEST_DELAY: 10
+        TEST_TTL: 10

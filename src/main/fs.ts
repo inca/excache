@@ -1,6 +1,7 @@
-import { Cache, CacheOptions } from './types.js';
 import { promises as fs } from 'fs';
 import path from 'path';
+
+import { Cache, CacheOptions } from './types.js';
 
 export interface FsCacheOptions<T> extends CacheOptions {
     dir: string;
@@ -89,7 +90,7 @@ export class FsCache<T> implements Cache<T> {
         if (maxSize) {
             const excess = stats
                 .filter(_ => !toRemove.has(_.file))
-                .sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs)
+                .sort((a, b) => b.stat.mtimeMs > a.stat.mtimeMs ? 1 : -1)
                 .slice(maxSize);
             for (const { file } of excess) {
                 toRemove.add(file);
