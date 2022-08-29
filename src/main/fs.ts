@@ -28,7 +28,6 @@ export class FsCache<T> implements Cache<T> {
                     return undefined;
                 }
             }
-            await fs.utimes(file, Date.now(), Date.now());
             const text = await fs.readFile(file, 'utf-8');
             return this.options.fromString(text);
         } catch (err: any) {
@@ -90,7 +89,7 @@ export class FsCache<T> implements Cache<T> {
         if (maxSize) {
             const excess = stats
                 .filter(_ => !toRemove.has(_.file))
-                .sort((a, b) => b.stat.mtimeMs > a.stat.mtimeMs ? 1 : -1)
+                .sort((a, b) => b.stat.atimeMs > a.stat.atimeMs ? 1 : -1)
                 .slice(maxSize);
             for (const { file } of excess) {
                 toRemove.add(file);

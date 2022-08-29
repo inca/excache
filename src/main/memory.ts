@@ -2,7 +2,7 @@ import { hrtime } from 'node:process';
 
 import { Cache, CacheOptions } from './types.js';
 
-type CacheRecord<T> = { value: T; mtime: bigint };
+type CacheRecord<T> = { value: T; mtime: bigint; atime: bigint };
 
 export class MemoryCache<T> implements Cache<T> {
 
@@ -22,12 +22,17 @@ export class MemoryCache<T> implements Cache<T> {
                 return undefined;
             }
         }
-        record.mtime = hrtime.bigint();
+        record.atime = hrtime.bigint();
         return record.value;
     }
 
     async set(key: string, value: T) {
-        this.map.set(key, { value, mtime: hrtime.bigint() });
+        const now = hrtime.bigint();
+        this.map.set(key, {
+            value,
+            mtime: now,
+            atime: now,
+        });
         this.sweep();
     }
 
@@ -57,7 +62,7 @@ export class MemoryCache<T> implements Cache<T> {
             }
         }
         if (maxSize) {
-            const entries = [...this.map.entries()].sort((a, b) => b[1].mtime > a[1].mtime ? 1 : -1);
+            const entries = [...this.map.entries()].sort((a, b) => b[1].atime > a[1].atime ? 1 : -1);
             const excess = entries.slice(maxSize);
             for (const [key] of excess) {
                 this.map.delete(key);
