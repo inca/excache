@@ -22,8 +22,8 @@ describe('FsCache', () => {
             cache = new FsCache<string>({
                 dir: cacheDir,
                 maxSize: 3,
-                toString: value => value,
-                fromString: value => value,
+                toBuffer: value => Buffer.from(value, 'utf-8'),
+                fromBuffer: value => value.toString('utf-8'),
             });
             await cache.set('foo', 'Hello World');
             await sleep(delay);
@@ -80,8 +80,8 @@ describe('FsCache', () => {
             cache = new FsCache<string>({
                 dir: cacheDir,
                 ttl,
-                toString: value => value,
-                fromString: value => value,
+                toBuffer: value => Buffer.from(value, 'utf-8'),
+                fromBuffer: value => value.toString('utf-8'),
             });
             await cache.set('foo', 'Hello World');
             await cache.set('bar', 'KTHXBYE');

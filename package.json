@@ -41,7 +41,7 @@
     "homepage": "https://github.com/inca/excache#readme",
     "devDependencies": {
         "@types/mocha": "^9.1.1",
-        "@types/node": "^18.7.13",
+        "@types/node": "^20.8.2",
         "@ubio/eslint-config": "^1.3.8",
         "eslint": "^7.32.0",
         "mocha": "^10.0.0",

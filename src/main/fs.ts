@@ -5,8 +5,8 @@ import { Cache, CacheOptions } from './types.js';
 
 export interface FsCacheOptions<T> extends CacheOptions {
     dir: string;
-    toString: (value: T) => string;
-    fromString: (value: string) => T;
+    toBuffer: (value: T) => Buffer;
+    fromBuffer: (value: Buffer) => T;
 }
 
 export class FsCache<T> implements Cache<T> {
@@ -28,8 +28,8 @@ export class FsCache<T> implements Cache<T> {
                     return undefined;
                 }
             }
-            const text = await fs.readFile(file, 'utf-8');
-            return this.options.fromString(text);
+            const buffer = await fs.readFile(file);
+            return this.options.fromBuffer(buffer);
         } catch (err: any) {
             if (err.code === 'ENOENT') {
                 return undefined;
@@ -41,8 +41,8 @@ export class FsCache<T> implements Cache<T> {
     async set(key: string, value: T) {
         await this.init();
         const file = this.getFile(key);
-        const serialized = this.options.toString(value);
-        await fs.writeFile(file, serialized, 'utf-8');
+        const buffer = this.options.toBuffer(value);
+        await fs.writeFile(file, buffer);
         await this.sweep();
     }
 
