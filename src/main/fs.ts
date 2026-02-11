@@ -70,14 +70,29 @@ export class FsCache<T> implements Cache<T> {
         if (!maxSize && !ttl) {
             return;
         }
-        const vfiles = await fs.readdir(this.options.dir);
+        let vfiles: string[];
+        try {
+            vfiles = await fs.readdir(this.options.dir);
+        } catch (err: any) {
+            if (err.code === 'ENOENT') {
+                return;
+            }
+            throw err;
+        }
         const promises = vfiles.map(async _ => {
             const file = path.join(this.options.dir, _);
-            const stat = await fs.stat(file);
-            return { file, stat };
+            try {
+                const stat = await fs.stat(file);
+                return { file, stat };
+            } catch (err: any) {
+                if (err.code === 'ENOENT') {
+                    return undefined;
+                }
+                throw err;
+            }
         });
         const toRemove = new Set<string>;
-        const stats = await Promise.all(promises);
+        const stats = (await Promise.all(promises)).filter(_ => _ != null) as Array<{ file: string; stat: { mtimeMs: number; atimeMs: number } }>;
         if (ttl) {
             for (const { file, stat } of stats) {
                 const stale = (stat.mtimeMs + ttl) < Date.now();

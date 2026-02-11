@@ -69,6 +69,30 @@ describe('FsCache', () => {
             assert.strictEqual(await cache.get('qux'), '123');
         });
 
+        it('ignores ENOENT races while sweeping', async () => {
+            const originalStat: any = fs.stat.bind(fs);
+            let injected = false;
+            (fs as any).stat = async (...args: any[]) => {
+                const file = String(args[0] ?? '');
+                if (!injected && file.endsWith(path.sep + 'foo')) {
+                    injected = true;
+                    const err: NodeJS.ErrnoException = new Error('simulated missing file');
+                    err.code = 'ENOENT';
+                    throw err;
+                }
+                return await originalStat(...args);
+            };
+
+            try {
+                await assert.doesNotReject(async () => {
+                    await cache.set('baz', '42');
+                });
+                assert.strictEqual(await cache.get('baz'), '42');
+            } finally {
+                (fs as any).stat = originalStat;
+            }
+        });
+
     });
 
     describe('TTL cache', () => {
