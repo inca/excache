@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs';
+import { promises as fs, Stats } from 'fs';
 import path from 'path';
 
 import { Cache, CacheOptions } from './types.js';
@@ -70,16 +70,10 @@ export class FsCache<T> implements Cache<T> {
         if (!maxSize && !ttl) {
             return;
         }
-        const vfiles = await fs.readdir(this.options.dir);
-        const promises = vfiles.map(async _ => {
-            const file = path.join(this.options.dir, _);
-            const stat = await fs.stat(file);
-            return { file, stat };
-        });
-        const toRemove = new Set<string>;
-        const stats = await Promise.all(promises);
+        const fileStats = await this.readCachedFiles();
+        const toRemove = new Set<string>();
         if (ttl) {
-            for (const { file, stat } of stats) {
+            for (const { file, stat } of fileStats) {
                 const stale = (stat.mtimeMs + ttl) < Date.now();
                 if (stale) {
                     toRemove.add(file);
@@ -87,7 +81,7 @@ export class FsCache<T> implements Cache<T> {
             }
         }
         if (maxSize) {
-            const excess = stats
+            const excess = fileStats
                 .filter(_ => !toRemove.has(_.file))
                 .sort((a, b) => b.stat.atimeMs > a.stat.atimeMs ? 1 : -1)
                 .slice(maxSize);
@@ -102,6 +96,25 @@ export class FsCache<T> implements Cache<T> {
 
     protected getFile(key: string) {
         return path.join(this.options.dir, key);
+    }
+
+    protected async readCachedFiles(): Promise<Array<{ file: string; stat: Stats }>> {
+        const vfiles = await fs.readdir(this.options.dir)
+            .catch(err => err.code === 'ENOENT' ? [] : Promise.reject(err));
+        const promises = vfiles.map(async _ => {
+            const file = path.join(this.options.dir, _);
+            try {
+                const stat = await fs.stat(file);
+                return { file, stat };
+            } catch (err: any) {
+                if (err.code === 'ENOENT') {
+                    return null;
+                }
+                throw err;
+            }
+        });
+        const res = await Promise.all(promises);
+        return res.filter(_ => _ != null);
     }
 
 }
