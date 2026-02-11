@@ -12,7 +12,6 @@ const delay = Number(process.env.TEST_DELAY) || 1;
 
 describe('FsCache', () => {
 
-
     describe('LRU cache', () => {
 
         let cache: FsCache<string>;

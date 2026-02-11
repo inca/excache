@@ -71,7 +71,7 @@ export class FsCache<T> implements Cache<T> {
             return;
         }
         const fileStats = await this.readCachedFiles();
-        const toRemove = new Set<string>;
+        const toRemove = new Set<string>();
         if (ttl) {
             for (const { file, stat } of fileStats) {
                 const stale = (stat.mtimeMs + ttl) < Date.now();

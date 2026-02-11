@@ -2,7 +2,7 @@ import { hrtime } from 'node:process';
 
 import { Cache, CacheOptions } from './types.js';
 
-type CacheRecord<T> = { value: T; mtime: bigint; atime: bigint };
+interface CacheRecord<T> { value: T; mtime: bigint; atime: bigint }
 
 export class MemoryCache<T> implements Cache<T> {
 
